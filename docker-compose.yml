@@ -1,0 +1,10 @@
+services:
+  3proxy:
+    build: .
+    container_name: 3proxy
+    volumes:
+      - ./config:/etc/3proxy
+      - ./logs:/var/log/3proxy
+    ports:
+      - "1080:1080"
+    restart: unless-stopped
