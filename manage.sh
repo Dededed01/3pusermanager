@@ -66,7 +66,27 @@ case $1 in
       echo "$user: $(hyperlink "$url" "$url")"
     done
     ;;
+  stats)
+    today=$(date +%Y.%m.%d)
+    logfile="./logs/3proxy.log.$today"
+    [[ ! -f "$logfile" ]] && logfile=$(ls -t ./logs/3proxy.log.* 2>/dev/null | head -1)
+    [[ -z "$logfile" ]] && echo "No log files found" && exit 1
+    echo "Stats from $(basename $logfile):"
+    echo ""
+    awk '$6 != "-" {
+      user=$6; ip=$7
+      sub(/:.*/, "", ip)
+      conns[user]++
+      key = user SUBSEP ip
+      if (!(key in seen)) { seen[key]=1; ip_count[user]++ }
+    }
+    END {
+      for (u in conns) printf "%d %d %s\n", conns[u], ip_count[u], u
+    }' "$logfile" | sort -rn | \
+    awk 'BEGIN { printf "%-20s %8s %10s\n", "User", "Conns", "Unique IPs" }
+         { printf "%-20s %8d %10d\n", $3, $1, $2 }'
+    ;;
   *)
-    echo "Usage: $0 {add <user> [user2...]|remove <user>|list|link <user> [user2...|all]}"
+    echo "Usage: $0 {add <user> [user2...]|remove <user>|list|link <user> [user2...|all]|stats}"
     ;;
 esac
