@@ -10,6 +10,12 @@ tg_link() {
     echo "tg://socks?server=${SERVER_IP}&port=${SOCKS5_PORT}&user=${user}&pass=${pass}"
 }
 
+# OSC 8 clickable hyperlink (supported in Windows Terminal, iTerm2, etc.)
+hyperlink() {
+    local url=$1 text=$2
+    printf '\e]8;;%s\e\\%s\e]8;;\e\\' "$url" "$text"
+}
+
 random_pass() {
     tr -dc 'a-zA-Z0-9' </dev/urandom | head -c 16
 }
@@ -28,7 +34,8 @@ case $1 in
       echo ""
       echo "  User:     $user"
       echo "  Password: $pass"
-      echo "  TG link:  $(tg_link $user $pass)"
+      url=$(tg_link $user $pass)
+      echo "  TG link:  $(hyperlink "$url" "$url")"
       echo ""
     done
     docker kill --signal=HUP 3proxy
@@ -44,18 +51,22 @@ case $1 in
     grep "^users" "$USERS_FILE" | awk -F: '{print "  " $1}' | sed 's/users //'
     ;;
   link)
-    [[ -z $2 ]] && echo "Usage: $0 link <user>" && exit 1
+    [[ -z $2 ]] && echo "Usage: $0 link <user> [user2...|all]" && exit 1
     shift
+    if [[ $1 == "all" ]]; then
+      set -- $(grep "^users" "$USERS_FILE" | cut -d: -f1 | sed 's/users //')
+    fi
     for user in "$@"; do
       pass=$(grep "^users $user:" "$USERS_FILE" | cut -d: -f3)
       if [[ -z $pass ]]; then
         echo "User $user not found"
         continue
       fi
-      echo "$user: $(tg_link $user $pass)"
+      url=$(tg_link $user $pass)
+      echo "$user: $(hyperlink "$url" "$url")"
     done
     ;;
   *)
-    echo "Usage: $0 {add <user> [user2...]|remove <user>|list|link <user> [user2...]}"
+    echo "Usage: $0 {add <user> [user2...]|remove <user>|list|link <user> [user2...|all]}"
     ;;
 esac
