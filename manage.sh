@@ -17,15 +17,21 @@ random_pass() {
 case $1 in
   add)
     [[ -z $2 ]] && echo "Usage: $0 add <user> [pass]" && exit 1
-    grep -q "^users $2:" "$USERS_FILE" && echo "User $2 already exists" && exit 1
-    pass=${3:-$(random_pass)}
-    echo "users $2:CL:$pass" >> "$USERS_FILE"
+    shift
+    for user in "$@"; do
+      if grep -q "^users $user:" "$USERS_FILE"; then
+        echo "User $user already exists, skipping"
+        continue
+      fi
+      pass=$(random_pass)
+      echo "users $user:CL:$pass" >> "$USERS_FILE"
+      echo ""
+      echo "  User:     $user"
+      echo "  Password: $pass"
+      echo "  TG link:  $(tg_link $user $pass)"
+      echo ""
+    done
     docker kill --signal=HUP 3proxy
-    echo ""
-    echo "  User:     $2"
-    echo "  Password: $pass"
-    echo "  TG link:  $(tg_link $2 $pass)"
-    echo ""
     ;;
   remove)
     [[ -z $2 ]] && echo "Usage: $0 remove <user>" && exit 1
@@ -39,11 +45,17 @@ case $1 in
     ;;
   link)
     [[ -z $2 ]] && echo "Usage: $0 link <user>" && exit 1
-    pass=$(grep "^users $2:" "$USERS_FILE" | cut -d: -f3)
-    [[ -z $pass ]] && echo "User $2 not found" && exit 1
-    echo "$(tg_link $2 $pass)"
+    shift
+    for user in "$@"; do
+      pass=$(grep "^users $user:" "$USERS_FILE" | cut -d: -f3)
+      if [[ -z $pass ]]; then
+        echo "User $user not found"
+        continue
+      fi
+      echo "$user: $(tg_link $user $pass)"
+    done
     ;;
   *)
-    echo "Usage: $0 {add <user> [pass]|remove <user>|list|link <user>}"
+    echo "Usage: $0 {add <user> [user2...]|remove <user>|list|link <user> [user2...]}"
     ;;
 esac
