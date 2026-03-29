@@ -39,7 +39,7 @@ case $1 in
     [[ -z $2 ]] && echo "Usage: $0 add <user> [user2...]" && exit 1
     shift
     for user in "$@"; do
-      if grep -q "\"${user}\"$" "$CONFIG"; then
+      if grep -q "\"${user}\"," "$CONFIG"; then
         echo "User $user already exists, skipping"
         continue
       fi
@@ -56,8 +56,8 @@ case $1 in
     ;;
   remove)
     [[ -z $2 ]] && echo "Usage: $0 remove <user>" && exit 1
-    grep -q "\"$2\"$" "$CONFIG" || { echo "User $2 not found"; exit 1; }
-    sed -i "/\"$2\"$/d" "$CONFIG"
+    grep -q "\"$2\"," "$CONFIG" || { echo "User $2 not found"; exit 1; }
+    sed -i "/\"$2\",/d" "$CONFIG"
     reload
     echo "Removed $2"
     ;;
@@ -72,7 +72,7 @@ case $1 in
       set -- $(grep -v "# managed" "$CONFIG" | grep '":' | awk -F'"' '{print $4}')
     fi
     for user in "$@"; do
-      secret=$(grep "\"${user}\"$" "$CONFIG" | cut -d'"' -f2)
+      secret=$(grep "\"${user}\"," "$CONFIG" | cut -d'"' -f2)
       if [[ -z $secret ]]; then
         echo "User $user not found"
         continue
