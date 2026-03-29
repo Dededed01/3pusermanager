@@ -6,5 +6,5 @@ services:
       - ./config:/etc/3proxy
       - ./logs:/var/log/3proxy
     ports:
-      - "1080:1080"
+      - "443:1080"
     restart: unless-stopped

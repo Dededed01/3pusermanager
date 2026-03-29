@@ -1,7 +1,7 @@
 #!/bin/bash
 
 USERS_FILE="./config/users.cfg"
-SOCKS5_PORT=1080
+SOCKS5_PORT=443
 # Auto-detect public IP or set manually:
 SERVER_IP=$(curl -s ifconfig.me 2>/dev/null)
 
