@@ -73,18 +73,33 @@ case $1 in
     [[ -z "$logfile" ]] && echo "No log files found" && exit 1
     echo "Stats from $(basename $logfile):"
     echo ""
-    awk '$6 != "-" {
-      user=$6; ip=$7
-      sub(/:.*/, "", ip)
-      conns[user]++
-      key = user SUBSEP ip
-      if (!(key in seen)) { seen[key]=1; ip_count[user]++ }
+    # Pass 1: total connections per user
+    awk '/^- \+_L/ && $6 != "-" { conns[$6]++ }
+      END { for (u in conns) print u, conns[u] }' "$logfile" > /tmp/3proxy_totals
+    # Pass 2: sweep-line peak simultaneous connections
+    # Log entries are written at connection END; $3=end time, $11=duration(sec)
+    # So start = end - duration. Emit +1 at start, -1 at end, sort, sweep.
+    awk '/^- \+_L/ && $6 != "-" {
+      user=$6
+      split($3, t, ":")
+      end_sec = t[1]*3600 + t[2]*60 + int(t[3])
+      start_sec = end_sec - int($11)
+      if (start_sec < 0) start_sec = 0
+      printf "%09d -1 %s\n", end_sec, user
+      printf "%09d +1 %s\n", start_sec, user
+    }' "$logfile" | sort | \
+    awk '{
+      delta = ($2 == "+1") ? 1 : -1
+      count[$3] += delta
+      if (count[$3] > peak[$3]) peak[$3] = count[$3]
     }
-    END {
-      for (u in conns) printf "%d %d %s\n", conns[u], ip_count[u], u
-    }' "$logfile" | sort -rn | \
-    awk 'BEGIN { printf "%-20s %8s %10s\n", "User", "Conns", "Unique IPs" }
-         { printf "%-20s %8d %10d\n", $3, $1, $2 }'
+    END { for (u in peak) print u, peak[u] }' > /tmp/3proxy_peaks
+    # Merge and display, sorted by total conns desc
+    awk 'NR==FNR { total[$1]=$2; next } { print total[$1], $2, $1 }' \
+      /tmp/3proxy_totals /tmp/3proxy_peaks | sort -rn | \
+    awk 'BEGIN { printf "%-20s %8s %12s\n", "User", "Conns", "Peak Simult." }
+         { printf "%-20s %8d %12d\n", $3, $1, $2 }'
+    rm -f /tmp/3proxy_totals /tmp/3proxy_peaks
     ;;
   *)
     echo "Usage: $0 {add <user> [user2...]|remove <user>|list|link <user> [user2...|all]|stats}"
