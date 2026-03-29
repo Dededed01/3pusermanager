@@ -1,0 +1,6 @@
+FROM python:3.11-alpine
+RUN pip install --no-cache-dir cryptography && \
+    mkdir /app && \
+    wget -qO /app/mtprotoproxy.py https://raw.githubusercontent.com/alexbers/mtprotoproxy/master/mtprotoproxy.py
+WORKDIR /app
+CMD ["python", "mtprotoproxy.py"]

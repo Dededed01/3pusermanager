@@ -1,0 +1,9 @@
+services:
+  mtproto:
+    build: .
+    container_name: mtproto
+    volumes:
+      - ./config/config.py:/app/config.py
+    ports:
+      - "443:443"
+    restart: unless-stopped
