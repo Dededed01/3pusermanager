@@ -31,7 +31,7 @@ random_secret() {
 }
 
 reload() {
-    docker kill --signal=HUP mtproto 2>/dev/null || docker restart mtproto
+    docker restart mtproto
 }
 
 case $1 in
